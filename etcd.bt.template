@@ -1,0 +1,65 @@
+struct RangeReq {
+  uint8_t *key;
+  uint64_t key_len;
+  uint64_t key_cap;
+  uint8_t *range_end;
+  uint64_t range_end_len;
+  uint64_t range_end_cap;
+  uint64_t limit;
+  uint64_t revision;
+  uint32_t sort_order;
+  uint32_t sort_target;
+  uint8_t serializable;
+  uint8_t keys_only;
+  uint8_t count_only;
+  uint64_t min_mod_revision;
+  uint64_t max_mod_revision;
+  uint64_t min_create_revision;
+  uint64_t max_create_revision;
+}
+
+struct PutReq {
+  uint8_t *key;
+  uint64_t key_len;
+  uint64_t key_cap;
+  uint8_t *value;
+  uint64_t value_len;
+  uint64_t value_cap;
+  uint64_t lease;
+  uint8_t prev_kv;
+  uint8_t ignore_value;
+  uint8_t ignore_lease;
+}
+
+uprobe:{{.EtcdBinaryPath}}:0x{{index .Addrs "(*kvServer).Range"}} {
+  $range_req = (struct RangeReq *)(reg("{{.ReqReg}}"));
+  printf(
+    "Range key=%r range_end=%r limit=%d revision=%d sort_order=%d sort_limit=%d serializable=%d keys_only=%d count_only=%d min_mod_revision=%d max_mod_revision=%d min_create_revision=%d max_create_revision=%d\n",
+    buf($range_req->key, $range_req->key_len),
+    buf($range_req->range_end, $range_req->range_end_len),
+    $range_req->limit,
+    $range_req->revision,
+    $range_req->sort_order,
+    $range_req->sort_target,
+    $range_req->serializable,
+    $range_req->keys_only,
+    $range_req->count_only,
+    $range_req->min_mod_revision,
+    $range_req->max_mod_revision,
+    $range_req->min_create_revision,
+    $range_req->max_create_revision
+  );
+}
+
+uprobe:{{.EtcdBinaryPath}}:0x{{index .Addrs "(*kvServer).Put"}} {
+  $put_req = (struct PutReq *)(reg("{{.ReqReg}}"));
+  printf(
+    "Put key=%r value=%r lease=%d prev_kv=%d ignore_value=%d ignore_lease=%d\n",
+    buf($put_req->key, $put_req->key_len),
+    buf($put_req->value, $put_req->value_len),
+    $put_req->lease,
+    $put_req->prev_kv,
+    $put_req->ignore_value,
+    $put_req->ignore_lease
+  );
+}
